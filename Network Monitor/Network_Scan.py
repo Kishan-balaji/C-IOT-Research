@@ -1,25 +1,5 @@
-import socket
-import nmap
-import pymongo
-import socket
-
-mongo_connection_string = "mongodb://localhost:27017"
-database_name = "IOT"
-collection_name = "wii"
-client = pymongo.MongoClient(mongo_connection_string)
-db = client[database_name]
-collection = db[collection_name]
-
-
-
-def get_all_mongo_ips():
-    ips = []
-    data = list(collection.find({}, {'_id': 0}))
-    for entry in data:
-        ip = entry.get('IP:')
-        if ip:
-            ips.append(ip)
-    return ips 
+import concurrent.futures
+import socket,nmap,pymongo
 
 def wifi_scan(): 
     hosts_list=[]
@@ -40,14 +20,12 @@ def wifi_scan():
 
         return hosts_list
     except:
+        print("check internet connection")
         return None
-        
-    # (Previous wifi_scan() function remains the same)
+
 
 def get(ip):
     nm=nmap.PortScanner()
-    # udp_ports = []
-    # tcp_ports = []
     device={}
     mal="0"
     try:
@@ -99,7 +77,7 @@ def get(ip):
                                 'protocol': proto.upper()
                             })
     except:
-        open_ports=[]
+        open_ports= {'udp': [], 'tcp': []}
             
     try:
         device={
@@ -112,55 +90,51 @@ def get(ip):
                 'Manufacturer Name:':manufacturer,
                 'Manufacturer ip:':manufacturer_ip,
                 'udp/tcp open ports:': open_ports,
-                # 'tcp open ports:':tcp_ports,
                 'Malicious:':mal
                 }
     except:
-        return device
-    return device
-  
-def store_in_mongodb(documents):
+        pass
     
+    return device
+
+def get_all_mongo_ips():
     try:
-        
-        
+        ips = []
+        data = list(collection.find({}, {'_id': 0}))
+        for entry in data:
+            ip = entry.get('IP:')
+            if ip:
+                ips.append(ip)
+        return ips 
+    except:
+        print("check mongo connection")
+def store_in_mongodb(documents):
+    try:
         collection.insert_many(documents)
         print("Data stored in MongoDB successfully.",flush=True)
     except:
         print(f"Error storing data in MongoDB",flush=True)
-    finally:
-        client.close()
+    
 
-def func1():
-    iplist = wifi_scan()
-    mongo_ip=get_all_mongo_ips()
-    print(iplist,flush=True)
-    if iplist is not None:
-        devices = []
-        for ip in iplist:
-            if ip in mongo_ip:
-                continue
-            else:
-                try:
-                    device_data = get(ip)
-                    print(device_data,flush=True)
-                    devices.append(device_data)
-                    store_in_mongodb([device_data])
-                except:
-                    print(f"No data found for IP: {ip}",flush=True)
-
-                
-            return devices
-        else:
-            print("WiFi scan failed.",flush=True)
-            
-            return []
 if __name__ == "__main__":
-    # mongo_connection_string = "mongodb://localhost:27017"
-    # database_name = "IOT"
-    # collection_name = "wii"
-    # client = pymongo.MongoClient(mongo_connection_string)
-    # db = client[database_name]
-    # collection = db[collection_name]
-    func1()
-    client.close()
+    mongo_connection_string = "mongodb://localhost:27017"
+    database_name = "IOT"
+    collection_name = "final"
+    client = pymongo.MongoClient(mongo_connection_string)
+    db = client[database_name]
+    collection = db[collection_name]
+    iplist=wifi_scan()
+    mongo_ip=get_all_mongo_ips()
+
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        if iplist is not None:
+            for ip in iplist:
+                if ip in mongo_ip:
+                    continue
+                else:
+                    try:
+                        f=executor.submit(get,ip)
+                        store_in_mongodb([f.result()])
+                    except:
+                        print('scan failed')
