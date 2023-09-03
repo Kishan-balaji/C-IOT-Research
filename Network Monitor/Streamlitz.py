@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pymongo
 import pandas as pd
@@ -10,12 +9,11 @@ broker_address = "mqtt.eclipseprojects.io"
 broker_port = 1883  # Default MQTT port
 client1 = mqtt.Client()
 client1.connect(broker_address, broker_port)
-client1.subscribe("mytopic")
-print('connected')
+client1.subscribe("mytopic")  #enter a topic which must be same in the publish code
 
 client = pymongo.MongoClient("mongodb://localhost:27017/")
-db = client["IOT"]
-collection = db["wii"]
+db = client["IOT"]  #your Database Name
+collection = db["wii"]  #your collection Name
 
 def AlertBox(wht_msg, ip):
     styles = {'material-icons':{'color': '#FF0000'},
