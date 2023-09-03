@@ -117,9 +117,9 @@ def store_in_mongodb(documents):
     
 
 if __name__ == "__main__":
-    mongo_connection_string = "mongodb://localhost:27017"
-    database_name = "IOT"
-    collection_name = "final"
+    mongo_connection_string = "mongodb://localhost:27017" #enter your mongo localhost connection string
+    database_name = "IOT"  #enter your Database Name
+    collection_name = "final"   # Enter your Collection Name
     client = pymongo.MongoClient(mongo_connection_string)
     db = client[database_name]
     collection = db[collection_name]
